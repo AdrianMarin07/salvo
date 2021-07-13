@@ -36,6 +36,12 @@ public class SalvoApplication {
 	@Autowired
 	private PasswordEncoder passwordEncoder;
 
+
+	@Bean
+	public PasswordEncoder passwordEncoder() {
+		return PasswordEncoderFactories.createDelegatingPasswordEncoder();
+	}
+
 	@Bean
 	public CommandLineRunner initData(PlayerRepository playerRepository, GameRepository gameRepository, GamePlayerRepository gamePlayerRepository, ShipRepository shipRepository, SalvoRepository salvoRepository, ScoreRepository scoreRepository) {
 		return (args) -> {
@@ -219,23 +225,22 @@ public class SalvoApplication {
 @Configuration
 class WebSecurityConfiguration extends GlobalAuthenticationConfigurerAdapter {
 
-	@Bean
-	public PasswordEncoder passwordEncoder() {
-		return PasswordEncoderFactories.createDelegatingPasswordEncoder();
-	}
 
 	@Autowired
 	PlayerRepository playerRepository;
 
 	@Override
 	public void init(AuthenticationManagerBuilder auth) throws Exception {
-		auth.userDetailsService(name-> {
-			Player player = playerRepository.findByUsername(name);
+		auth.userDetailsService(inputName-> {
+			Player player = playerRepository.findByUserName(inputName);
 			if (player != null) {
-				return new User(player.getUserName(), player.getPassword(),
-						AuthorityUtils.createAuthorityList("USER"));
+				return new User(
+						player.getUserName(),
+						player.getPassword(),
+						AuthorityUtils.createAuthorityList("USER")
+				);
 			} else {
-				throw new UsernameNotFoundException("Unknown user: " + name);
+				throw new UsernameNotFoundException("Unknown user: " + inputName);
 			}
 		});
 	}
@@ -250,12 +255,12 @@ class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 	protected void configure(HttpSecurity http) throws Exception {
 
 		http.authorizeRequests()
-
-				.antMatchers("/api/game").permitAll()
-
-				.antMatchers("/h2-console/**").permitAll()
-
+				//.anyRequest()
+				//.fullyAuthenticated()
+				.antMatchers(/*"/api/players", */"/api/game_view/**").hasAuthority("USER")
 				.antMatchers("/web/games.html").permitAll()
+				.antMatchers("/api/games").permitAll()
+				//.antMatchers("/api/players").permitAll()
 
 				.and()
 				.formLogin()
@@ -270,6 +275,8 @@ class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 		http.formLogin().successHandler((req, res, auth) -> clearAuthenticationAttributes(req));
 
 		http.formLogin().failureHandler((req, res, exc) -> res.sendError(HttpServletResponse.SC_UNAUTHORIZED));
+
+		http.logout().logoutUrl("/api/logout");
 
 		http.logout().logoutSuccessHandler(new HttpStatusReturningLogoutSuccessHandler());
 	}

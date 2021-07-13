@@ -17,7 +17,7 @@ public class Player {
 
     private long id;
 
-    private String username ;
+    private String userName ;
 
     private String password;
 
@@ -41,7 +41,7 @@ public class Player {
     }
 
     public Player(String userName, String password) {
-        this.username  = userName ;
+        this.userName  = userName ;
         this.password = password ;
     }
 
@@ -50,11 +50,11 @@ public class Player {
     }
 
     public String getUserName () {
-        return username ;
+        return userName ;
     }
 
     public void setUserName(String userName ) {
-        this.username  = userName ;
+        this.userName  = userName ;
     }
 
     public String getPassword() {
